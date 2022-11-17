@@ -7,7 +7,7 @@ import com.superapp.redsocial.core.infraestructure.jackson.SerializationMapperCo
 import com.superapp.redsocial.core.infraestructure.neptune.SSMCredentialsManager;
 import com.superapp.redsocial.core.shared.domain.constants.EnvKeys;
 import com.superapp.redsocial.core.shared.utils.Env;
-import redsocial.multimedia.infraestructure.api.Resources;
+import com.superapp.redsocial.user.infraestructure.api.resources.Resources;
 
 public class MainTest {
 
@@ -27,7 +27,7 @@ public class MainTest {
                 Env.var(EnvKeys.SEARCH_NEPTUNE_CONFIG.V())
                         .ifPresent(s -> SSMCredentialsManager.download(v, s)));
 
-        System.out.println("credenciales : " + SSMCredentialsManager.get());
+//        System.out.println(SSMCredentialsManager.get());
         RsClusterManager.INSTANCE.setupDownloader(SSMCredentialsManager.downloader);
         RsClusterManager.INSTANCE.setupConfigurationData(RsClusterManager
                 .ClusterManagerConfigData

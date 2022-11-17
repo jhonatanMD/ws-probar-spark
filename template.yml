@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: SAM Template For Java Lambda SuperApp
+Description: SAM Template For Deploy Java Lambda for Superapp RedSocial
 Parameters:
   Environment:
     Type: String
@@ -8,13 +8,16 @@ Parameters:
     Type: String
   Version:
     Type: String
+  RsNeptuneConfig:
+    Type: String
   SearchNeptuneConfig:
     Type: String
-  RsNeptuneConfig:
+  PagerPageSize:
     Type: String
 Mappings:
   Configuration:
     dev:
+      ReservedConcurrentExecutions: 1
       CodeDeployRole: DevOpsCodeDeploy
       CodeDeployType: CodeDeployDefault.LambdaAllAtOnce
       MemorySize: 1024
@@ -26,6 +29,7 @@ Mappings:
         - subnet-0d5a8c2d883e48fe1
         - subnet-0ceda7323d80e9fe3
     qa:
+      ReservedConcurrentExecutions: 1
       CodeDeployRole: DevOpsCodeDeploy
       CodeDeployType: CodeDeployDefault.LambdaAllAtOnce
       MemorySize: 1024
@@ -38,6 +42,7 @@ Mappings:
         - subnet-02a5297f4804c1aef
         - subnet-05974f2c077a91d09
     prod:
+      ReservedConcurrentExecutions: 1
       CodeDeployRole: DevOpsCodeDeploy
       CodeDeployType: CodeDeployDefault.LambdaAllAtOnce
       MemorySize: 1024
@@ -51,17 +56,17 @@ Mappings:
         - subnet-0ffb48440f1bdd8cb
   Layers:
     dev:
-      Microservice: "superapp-core-microservice:1"
-      RedSocial: "superapp-core-redsocial:16"
-      Neptune: "superapp-core-neptune:2"
+      RedSocial: "superapp-core-redsocial:15"
+      Neptune: "superapp-core-neptune:3"
+      Dynamo: "superapp-core-dynamo:1"
     qa:
-      Microservice: "superapp-core-microservice:1"
-      RedSocial: "superapp-core-redsocial:2"
-      Neptune: "superapp-core-neptune:2"
+      RedSocial: "superapp-core-redsocial:15"
+      Neptune: "superapp-core-neptune:3"
+      Dynamo: "superapp-core-dynamo:1"
     prod:
-      Microservice: "superapp-core-microservice:1"
-      RedSocial: "superapp-core-redsocial:16"
-      Neptune: "superapp-core-neptune:2"
+      RedSocial: "superapp-core-redsocial:15"
+      Neptune: "superapp-core-neptune:3"
+      Dynamo: "superapp-core-dynamo:1"
 Resources:
   LambdaRole:
     Type: AWS::IAM::Role
@@ -77,7 +82,7 @@ Resources:
               - 'sts:AssumeRole'
       Description: !Sub
         - "Role for lambda ${Name}"
-        - {Name: !Ref Name}
+        - { Name: !Ref Name }
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
       Path: /devops/
@@ -118,23 +123,24 @@ Resources:
     Properties:
       FunctionName: !Ref Name
       CodeUri: dist
-      Handler: redsocial.multimedia.infraestructure.handler.Handler::handleRequest
+      Handler: com.superapp.redsocial.user.infraestructure.api.Handler::handleRequest
       Runtime: java11
       MemorySize: !FindInMap [ Configuration, !Ref Environment, MemorySize ]
       Timeout: !FindInMap [ Configuration, !Ref Environment, Timeout ]
       Description: !Sub
         - "Release Version ${Version}"
         - { Version: !Ref Version }
+      ReservedConcurrentExecutions: !FindInMap [ Configuration, !Ref Environment, ReservedConcurrentExecutions ]
       Layers:
-        - !Sub
-          - "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${Layer}"
-          - { Layer: !FindInMap [ Layers, !Ref Environment, Microservice ] }
         - !Sub
           - "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${Layer}"
           - { Layer: !FindInMap [ Layers, !Ref Environment, Neptune ] }
         - !Sub
           - "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${Layer}"
           - { Layer: !FindInMap [ Layers, !Ref Environment, RedSocial ] }
+        - !Sub
+          - "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${Layer}"
+          - { Layer: !FindInMap [ Layers, !Ref Environment, Dynamo ] }
       Environment:
         Variables:
           APP_NAME: !Ref Name
@@ -142,6 +148,7 @@ Resources:
           APP_VERSION: !Ref Version
           SearchNeptuneConfig: !Ref SearchNeptuneConfig
           RsNeptuneConfig: !Ref RsNeptuneConfig
+          PagerPageSize: !Ref PagerPageSize
       AutoPublishAlias: live
       Role: !Sub
         - "arn:aws:iam::${AWS::AccountId}:role/devops/${LambdaRole}"

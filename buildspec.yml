@@ -12,10 +12,10 @@ phases:
       - aws s3 cp s3://$BUCKET_NAME/config/$APP_ENVIRONMENT/template.json ./template.json
       - aws s3 cp s3://$BUCKET_NAME/artifacts/superapp-core-redsocial-0.1.2.jar ./superapp-core-redsocial-0.1.2.jar
       - aws s3 cp s3://$BUCKET_NAME/artifacts/superapp-core-neptune-2.0.3.jar ./superapp-core-neptune-2.0.3.jar
-      - aws s3 cp s3://$BUCKET_NAME/artifacts/superapp-core-microservice-1.0.0.jar ./superapp-core-microservice-1.0.0.jar
-      - mvn install:install-file -Dfile=./superapp-core-microservice-1.0.0.jar -DgroupId=com.superapp.core -DartifactId=superapp-core-microservice -Dversion=1.0.0 -Dpackaging=jar
+      - aws s3 cp s3://$BUCKET_NAME/artifacts/superapp-core-dynamo-0.0.1.jar ./superapp-core-dynamo-0.0.1.jar
       - mvn install:install-file -Dfile=./superapp-core-redsocial-0.1.2.jar  -DgroupId=com.superapp.redsocial -DartifactId=redsocial-core -Dversion=0.1.2 -Dpackaging=jar
       - mvn install:install-file -Dfile=./superapp-core-neptune-2.0.3.jar -DgroupId=com.superapp.core -DartifactId=neptune -Dversion=2.0.3 -Dpackaging=jar
+      - mvn install:install-file -Dfile=./superapp-core-dynamo-0.0.1.jar -DgroupId=superapp.core.aws -DartifactId=dynamo -Dversion=0.0.1 -Dpackaging=jar
       - mvn package
   build:
     commands:
