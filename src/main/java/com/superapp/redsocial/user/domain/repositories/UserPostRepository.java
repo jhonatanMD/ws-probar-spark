@@ -4,6 +4,7 @@ package com.superapp.redsocial.user.domain.repositories;
 import com.superapp.redsocial.core.shared.paginator.Paginator;
 import com.superapp.redsocial.core.shared.search.SearchQuery;
 import com.superapp.redsocial.user.domain.entity.Post;
+import com.superapp.redsocial.user.domain.entity.ResponsePost;
 
 
 public interface UserPostRepository {
@@ -39,16 +40,16 @@ public interface UserPostRepository {
 
     String  getIdbySicu(String userSicu) throws Exception;
 
-    Paginator<Post> getMyHiddenPostMM(SearchQuery query) throws Exception;
-    Paginator<Post> getMyHiddenPostTxt(SearchQuery query) throws Exception;
-    Paginator<Post> getMyHiddenPostEtq(SearchQuery query) throws Exception;
+    ResponsePost getMyHiddenPostMM(SearchQuery query) throws Exception;
+    ResponsePost getMyHiddenPostTxt(SearchQuery query) throws Exception;
+    ResponsePost getMyHiddenPostEtq(SearchQuery query) throws Exception;
 
-    Paginator<Post> getUserWallMM(SearchQuery query) throws Exception;
-    Paginator<Post> getUserWallTxt(SearchQuery query) throws Exception;
-    Paginator<Post> getUserWallEtq(SearchQuery query) throws Exception;
+    ResponsePost getUserWallMM(SearchQuery query) throws Exception;
+    ResponsePost getUserWallTxt(SearchQuery query) throws Exception;
+    ResponsePost getUserWallEtq(SearchQuery query) throws Exception;
 
-    Paginator<Post> getUserWallNotFriendMM(SearchQuery query) throws Exception;
-    Paginator<Post> getUserWallNotFriendTxt(SearchQuery query) throws Exception;
-    Paginator<Post> getUserWallNotFriendEtq(SearchQuery query) throws Exception;
+   ResponsePost getUserWallNotFriendMM(SearchQuery query) throws Exception;
+    ResponsePost getUserWallNotFriendTxt(SearchQuery query) throws Exception;
+    ResponsePost getUserWallNotFriendEtq(SearchQuery query) throws Exception;
 
 }

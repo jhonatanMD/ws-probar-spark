@@ -1,14 +1,11 @@
 package com.superapp.redsocial.user.application.post_searcher;
 
-import com.superapp.redsocial.core.shared.paginator.Paginator;
 import com.superapp.redsocial.core.shared.paginator.RangePageIdentifier;
 import com.superapp.redsocial.core.shared.search.SearchQuery;
 import com.superapp.redsocial.user.domain.constants.SeccionValues;
-import com.superapp.redsocial.user.domain.entity.Post;
+import com.superapp.redsocial.user.domain.entity.ResponsePost;
 import com.superapp.redsocial.user.domain.events.SuccessSearchEvent;
 import com.superapp.redsocial.user.infraestructure.repositories.NeptuneRepository;
-
-import java.util.List;
 
 
 public class PostSearcher {
@@ -21,40 +18,41 @@ public class PostSearcher {
     public SuccessSearchEvent  searchAll(String userId, RangePageIdentifier page, String identityId,int hiddenPost) throws Exception {
         final var isPublic=psRepository.isPublicWall(userId,identityId);
         final var isMyFriend=psRepository.isMyFriend(userId,identityId);
-        List<Post> posts=null;
-        Paginator<Post> searchResultMulti = null;
-        Paginator<Post> searchResultText = null;
-        Paginator<Post> searchResultTag = null;
+
+        ResponsePost responsePostMulti = null;
+        ResponsePost responsePostText = null;
+        ResponsePost responsePostTag = null;
 
         var id=psRepository.getIdbySicu(identityId);
         if(userId.equals(id) && hiddenPost == SeccionValues.OCULTAS.V()) {
 
-
-
-            searchResultMulti =   psRepository.getMyHiddenPostMM(new SearchQuery(page, userId, userId, identityId));
-
-            searchResultText =    psRepository.getMyHiddenPostTxt(new SearchQuery(page, userId, userId, identityId));
-
-            searchResultTag =    psRepository.getMyHiddenPostEtq(new SearchQuery(page, userId, userId, identityId));
-
+            responsePostMulti =   psRepository.getMyHiddenPostMM(new SearchQuery(page, userId, userId, identityId));
+            responsePostText =    psRepository.getMyHiddenPostTxt(new SearchQuery(page, userId, userId, identityId));
+            responsePostTag =    psRepository.getMyHiddenPostEtq(new SearchQuery(page, userId, userId, identityId));
 
         }else{
 
             if(isMyFriend ){
-                    searchResultMulti = psRepository.getUserWallMM(new SearchQuery(page, userId, userId, identityId));
-                    searchResultText = psRepository.getUserWallTxt(new SearchQuery(page, userId, userId, identityId));
-                    searchResultTag = psRepository.getUserWallEtq(new SearchQuery(page, userId, userId, identityId));
+                responsePostMulti = psRepository.getUserWallMM(new SearchQuery(page, userId, userId, identityId));
+                responsePostText = psRepository.getUserWallTxt(new SearchQuery(page, userId, userId, identityId));
+                responsePostTag = psRepository.getUserWallEtq(new SearchQuery(page, userId, userId, identityId));
+
             }
             else {
-                    searchResultMulti =  psRepository.getUserWallNotFriendMM(new SearchQuery(page, userId, userId, identityId));
-                    searchResultText = psRepository.getUserWallNotFriendTxt(new SearchQuery(page, userId, userId, identityId));
-                    searchResultTag = psRepository.getUserWallNotFriendEtq(new SearchQuery(page, userId, userId, identityId));
+                responsePostMulti =  psRepository.getUserWallNotFriendMM(new SearchQuery(page, userId, userId, identityId));
+                responsePostText = psRepository.getUserWallNotFriendTxt(new SearchQuery(page, userId, userId, identityId));
+                responsePostTag = psRepository.getUserWallNotFriendEtq(new SearchQuery(page, userId, userId, identityId));
             }
 
-            if(userId.equals(identityId))
-                posts.add(0, psRepository.getMyUnverifiedPost(new SearchQuery(page, userId, userId, identityId)));
+            if(userId.equals(identityId)) {
+
+                if(responsePostMulti != null && responsePostMulti.getPost() != null) {
+                    responsePostMulti.getPost().add(0, psRepository.getMyUnverifiedPost(new SearchQuery(page, userId, userId, identityId)));
+                }
+            }
 
         }
-        return new SuccessSearchEvent(searchResultMulti.getPageInformation(), searchResultMulti.get(), searchResultText.get(), searchResultTag.get());
+
+        return new SuccessSearchEvent(responsePostMulti, responsePostText, responsePostTag);
     }
 }

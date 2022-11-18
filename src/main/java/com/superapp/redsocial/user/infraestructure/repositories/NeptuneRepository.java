@@ -9,6 +9,7 @@ import com.superapp.redsocial.core.shared.search.SearchQuery;
 import com.superapp.redsocial.user.domain.constants.PostStatus;
 import com.superapp.redsocial.user.domain.entity.Post;
 import com.superapp.redsocial.user.domain.entity.Privacy;
+import com.superapp.redsocial.user.domain.entity.ResponsePost;
 import com.superapp.redsocial.user.domain.entity.TypesPrivacy;
 import com.superapp.redsocial.user.domain.repositories.UserPostRepository;
 import com.superapp.redsocial.user.infraestructure.builders.EnhancedPostBuilder;
@@ -31,12 +32,6 @@ import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.unfold
 
 
 public class NeptuneRepository implements UserPostRepository {
-
-//    private final NeptuneAuthorizationManager authorizer;
-
-//    public NeptuneRepository(NeptuneAuthorizationManager authorizationManager) {
-//        this.authorizer = authorizationManager;
-//    }
 
     public NeptuneRepository() {
 
@@ -221,10 +216,19 @@ public class NeptuneRepository implements UserPostRepository {
     }
 
     @Override
-    public Paginator<Post> getMyHiddenPostMM(SearchQuery query) throws Exception {
+    public ResponsePost getMyHiddenPostMM(SearchQuery query) throws Exception {
         try {
             final var g = RsClusterManager.R.readerRsSource();
-            return new Paginator<>(g.V(query.getEntityId()).as("author").outE("POSTED")
+
+            var count = g.V(query.getEntityId()).as("author").outE("POSTED")
+                    .otherV().hasLabel("Post").has("status",RsPostStatus.HIDDEN.V())
+                    .has("type",0)
+                    .where(__.outE("HAS_MM"))
+                    .dedup()
+                    .count()
+                    .next();
+
+            var page =  new Paginator<>(g.V(query.getEntityId()).as("author").outE("POSTED")
                     .otherV().hasLabel("Post").has("status",RsPostStatus.HIDDEN.V())
                     .has("type",0)
                     .where(__.outE("HAS_MM"))
@@ -236,16 +240,27 @@ public class NeptuneRepository implements UserPostRepository {
                     .collect(Collectors.toList())
                     , query.getPageIdentifier());
 
+            return new ResponsePost(page.getPageInformation(),count,page.get());
         } finally {
             RsClusterManager.R.closeRsReaderClient();
         }
     }
 
     @Override
-    public Paginator<Post> getMyHiddenPostTxt(SearchQuery query) throws Exception {
+    public ResponsePost getMyHiddenPostTxt(SearchQuery query) throws Exception {
         try {
             final var g = RsClusterManager.R.readerRsSource();
-            return new Paginator<>(g.V(query.getEntityId()).as("author").outE("POSTED")
+
+            var count = g.V(query.getEntityId()).as("author").outE("POSTED")
+                    .otherV().hasLabel("Post").has("status",RsPostStatus.HIDDEN.V())
+                    .has("type",0)
+                    .where(__.not(__.outE("HAS_MM")))
+                    .dedup()
+                    .count()
+                    .next();
+
+
+            var page = new Paginator<>(g.V(query.getEntityId()).as("author").outE("POSTED")
                     .otherV().hasLabel("Post").has("status",RsPostStatus.HIDDEN.V())
                     .has("type",0)
                     .where(__.not(__.outE("HAS_MM")))
@@ -257,16 +272,25 @@ public class NeptuneRepository implements UserPostRepository {
                     .collect(Collectors.toList())
                     , query.getPageIdentifier());
 
+             return new ResponsePost(page.getPageInformation(),count,page.get());
+
         } finally {
             RsClusterManager.R.closeRsReaderClient();
         }
     }
 
     @Override
-    public Paginator<Post> getMyHiddenPostEtq(SearchQuery query) throws Exception {
+    public ResponsePost getMyHiddenPostEtq(SearchQuery query) throws Exception {
         try {
             final var g = RsClusterManager.R.readerRsSource();
-            return new Paginator<>(g.V(query.getEntityId()).as("author").outE("POSTED")
+
+            var count = g.V(query.getEntityId()).as("author").outE("POSTED")
+                     .otherV().hasLabel("Post").not(has("type",0)).has("status",RsPostStatus.HIDDEN.V())
+                    .dedup()
+                    .count()
+                    .next();
+
+            var page =  new Paginator<>(g.V(query.getEntityId()).as("author").outE("POSTED")
                     .otherV().hasLabel("Post").not(has("type",0)).has("status",RsPostStatus.HIDDEN.V())
                     .order().by("updatedAt", Order.desc).range(query.getPageIdentifier().low(), query.getPageIdentifier().high() + 1)
                     .as("post")
@@ -276,19 +300,32 @@ public class NeptuneRepository implements UserPostRepository {
                     .collect(Collectors.toList())
                     , query.getPageIdentifier());
 
+            return new ResponsePost(page.getPageInformation(),count,page.get());
         } finally {
             RsClusterManager.R.closeRsReaderClient();
         }
     }
 
     @Override
-    public Paginator<Post> getUserWallMM(SearchQuery query) throws Exception {
+    public ResponsePost getUserWallMM(SearchQuery query) throws Exception {
         try {
             final var g = RsClusterManager.R.readerRsSource();
 
             //AuthorizerProxy.verify(authorizer, g, query);
 
-            return new Paginator<>(g.V(query.getEntityId())
+            var count = g.V(query.getEntityId())
+                    .bothE(RsEdges.POSTED.V(), "POSTED_TO", "TAGGED_TO").has("status", PostStatus.APPROVED.value())
+                    .otherV().hasLabel("Post").has("status", PostStatus.POSTED.value())
+                    .has("type",0)
+                    .where(__.outE("HAS_MM"))
+                    .as("post").dedup()
+                    .bothE(RsEdges.POSTED.V()).has("status", 1)
+                    .dedup()
+                    .count()
+                    .next();
+
+
+            var page = new Paginator<>(g.V(query.getEntityId())
                     .bothE(RsEdges.POSTED.V(), "POSTED_TO", "TAGGED_TO").has("status", PostStatus.APPROVED.value())
                     .otherV().hasLabel("Post").has("status", PostStatus.POSTED.value())
                     .has("type",0)
@@ -301,19 +338,34 @@ public class NeptuneRepository implements UserPostRepository {
                     .map(v -> EnhancedPostBuilder.build(v, g, query))
                     .collect(Collectors.toList())
                     , query.getPageIdentifier());
+
+            return new ResponsePost(page.getPageInformation(),count,page.get());
         } finally {
             RsClusterManager.R.closeRsReaderClient();
         }
     }
 
     @Override
-    public Paginator<Post> getUserWallTxt(SearchQuery query) throws Exception {
+    public ResponsePost getUserWallTxt(SearchQuery query) throws Exception {
         try {
             final var g = RsClusterManager.R.readerRsSource();
 
             //AuthorizerProxy.verify(authorizer, g, query);
 
-            return new Paginator<>(g.V(query.getEntityId())
+            var count = g.V(query.getEntityId())
+                    .bothE(RsEdges.POSTED.V(), "POSTED_TO", "TAGGED_TO").has("status", PostStatus.APPROVED.value())
+                    .otherV().hasLabel("Post").has("status", PostStatus.POSTED.value())
+                    .has("type",0)
+                    .where(__.not(__.outE("HAS_MM")))
+                    .as("post")
+                    .dedup()
+                    .bothE(RsEdges.POSTED.V()).has("status", 1)
+                    .dedup()
+                    .count()
+                    .next();
+
+
+            var page =  new Paginator<>(g.V(query.getEntityId())
                     .bothE(RsEdges.POSTED.V(), "POSTED_TO", "TAGGED_TO").has("status", PostStatus.APPROVED.value())
                     .otherV().hasLabel("Post").has("status", PostStatus.POSTED.value())
                     .has("type",0)
@@ -325,19 +377,31 @@ public class NeptuneRepository implements UserPostRepository {
                     .map(v -> EnhancedPostBuilder.build(v, g, query))
                     .collect(Collectors.toList())
                     , query.getPageIdentifier());
+
+            return new ResponsePost(page.getPageInformation(),count,page.get());
         } finally {
             RsClusterManager.R.closeRsReaderClient();
         }
     }
 
     @Override
-    public Paginator<Post> getUserWallEtq(SearchQuery query) throws Exception {
+    public ResponsePost getUserWallEtq(SearchQuery query) throws Exception {
         try {
             final var g = RsClusterManager.R.readerRsSource();
 
             //AuthorizerProxy.verify(authorizer, g, query);
 
-            return new Paginator<>(g.V(query.getEntityId())
+            var count = g.V(query.getEntityId())
+                    .bothE(RsEdges.POSTED.V(), "POSTED_TO", "TAGGED_TO").has("status", PostStatus.APPROVED.value())
+                    .otherV().hasLabel("Post").not(has("type",0))
+                    .has("status", PostStatus.POSTED.value()).as("post")
+                    .dedup()
+                    .bothE(RsEdges.POSTED.V()).has("status", 1)
+                    .dedup()
+                    .count()
+                    .next();
+
+            var page = new Paginator<>(g.V(query.getEntityId())
                     .bothE(RsEdges.POSTED.V(), "POSTED_TO", "TAGGED_TO").has("status", PostStatus.APPROVED.value())
                     .otherV().hasLabel("Post").not(has("type",0)).has("status", PostStatus.POSTED.value()).as("post").dedup()
                     .order().by("createdAt", Order.desc).range(query.getPageIdentifier().low(), query.getPageIdentifier().high() + 1)
@@ -346,18 +410,33 @@ public class NeptuneRepository implements UserPostRepository {
                     .map(v -> EnhancedPostBuilder.build(v, g, query))
                     .collect(Collectors.toList())
                     , query.getPageIdentifier());
+
+            return new ResponsePost(page.getPageInformation(),count,page.get());
         } finally {
             RsClusterManager.R.closeRsReaderClient();
         }
     }
 
     @Override
-    public Paginator<Post> getUserWallNotFriendMM(SearchQuery query) throws Exception {
+    public ResponsePost getUserWallNotFriendMM(SearchQuery query) throws Exception {
         try {
             final var g = RsClusterManager.R.readerRsSource();
             //AuthorizerProxy.verify(authorizer, g, query);
 
-            return new Paginator<>(g.V(query.getEntityId())
+            var count = g.V(query.getEntityId())
+                    .bothE(RsEdges.POSTED.V(), "POSTED_TO", "TAGGED_TO").has("status", PostStatus.APPROVED.value())
+                    .otherV().hasLabel("Post").has("status", PostStatus.POSTED.value())
+                    .has("type",0)
+                    .where(__.outE("HAS_MM"))
+                    .not(has("privacy", TypesPrivacy.PRIVATE.getValue())).as("post").dedup()
+                    .order().by("createdAt", Order.desc)
+                    .bothE(RsEdges.POSTED.V())
+                    .has("status", 1)
+                    .dedup()
+                    .count()
+                    .next();
+
+            var page = new Paginator<>(g.V(query.getEntityId())
                     .bothE(RsEdges.POSTED.V(), "POSTED_TO", "TAGGED_TO").has("status", PostStatus.APPROVED.value())
                     .otherV().hasLabel("Post").has("status", PostStatus.POSTED.value())
                     .has("type",0)
@@ -370,18 +449,35 @@ public class NeptuneRepository implements UserPostRepository {
                     .map(v -> EnhancedPostBuilder.build(v, g, query))
                     .collect(Collectors.toList())
                     , query.getPageIdentifier());
+
+            return new ResponsePost(page.getPageInformation(),count,page.get());
         } finally {
             RsClusterManager.R.closeRsReaderClient();
         }
     }
 
     @Override
-    public Paginator<Post> getUserWallNotFriendTxt(SearchQuery query) throws Exception {
+    public ResponsePost getUserWallNotFriendTxt(SearchQuery query) throws Exception {
         try {
             final var g = RsClusterManager.R.readerRsSource();
             //AuthorizerProxy.verify(authorizer, g, query);
 
-            return new Paginator<>(g.V(query.getEntityId())
+            var count = g.V(query.getEntityId())
+                    .bothE(RsEdges.POSTED.V(), "POSTED_TO", "TAGGED_TO").has("status", PostStatus.APPROVED.value())
+                    .otherV().hasLabel("Post").has("status", PostStatus.POSTED.value())
+                    .has("type",0)
+                    .where(__.not(__.outE("HAS_MM")))
+                    .not(has("privacy", TypesPrivacy.PRIVATE.getValue())).as("post")
+                    .dedup()
+                    .bothE(RsEdges.POSTED.V())
+                    .has("status", 1)
+                    .dedup()
+                    .count()
+                    .next();
+
+
+
+            var page = new Paginator<>(g.V(query.getEntityId())
                     .bothE(RsEdges.POSTED.V(), "POSTED_TO", "TAGGED_TO").has("status", PostStatus.APPROVED.value())
                     .otherV().hasLabel("Post").has("status", PostStatus.POSTED.value())
                     .has("type",0)
@@ -393,18 +489,31 @@ public class NeptuneRepository implements UserPostRepository {
                     .map(v -> EnhancedPostBuilder.build(v, g, query))
                     .collect(Collectors.toList())
                     , query.getPageIdentifier());
+
+            return new ResponsePost(page.getPageInformation(),count,page.get());
         } finally {
             RsClusterManager.R.closeRsReaderClient();
         }
     }
 
     @Override
-    public Paginator<Post> getUserWallNotFriendEtq(SearchQuery query) throws Exception {
+    public ResponsePost getUserWallNotFriendEtq(SearchQuery query) throws Exception {
         try {
             final var g = RsClusterManager.R.readerRsSource();
             //AuthorizerProxy.verify(authorizer, g, query);
 
-            return new Paginator<>(g.V(query.getEntityId())
+            var count = g.V(query.getEntityId())
+                    .bothE(RsEdges.POSTED.V(), "POSTED_TO", "TAGGED_TO").has("status", PostStatus.APPROVED.value())
+                    .otherV().hasLabel("Post").not(has("type",0))
+                    .has("status", PostStatus.POSTED.value())
+                    .not(has("privacy", TypesPrivacy.PRIVATE.getValue())).as("post")
+                    .dedup()
+                    .bothE(RsEdges.POSTED.V()).has("status", 1)
+                    .dedup()
+                    .count()
+                    .next();
+
+            var page =  new Paginator<>(g.V(query.getEntityId())
                     .bothE(RsEdges.POSTED.V(), "POSTED_TO", "TAGGED_TO").has("status", PostStatus.APPROVED.value())
                     .otherV().hasLabel("Post").not(has("type",0)).has("status", PostStatus.POSTED.value())
                     .not(has("privacy", TypesPrivacy.PRIVATE.getValue())).as("post").dedup()
@@ -414,6 +523,8 @@ public class NeptuneRepository implements UserPostRepository {
                     .map(v -> EnhancedPostBuilder.build(v, g, query))
                     .collect(Collectors.toList())
                     , query.getPageIdentifier());
+
+            return new ResponsePost(page.getPageInformation(),count,page.get());
         } finally {
             RsClusterManager.R.closeRsReaderClient();
         }
