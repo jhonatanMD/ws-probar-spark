@@ -15,10 +15,6 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 @DynamoDbBean
 public class EventNotification {
 
-    @JsonProperty("category")
-    @SerializedName(value = "category")
-    private String category;
-
     @JsonProperty("body")
     @SerializedName(value = "body")
     private String body;

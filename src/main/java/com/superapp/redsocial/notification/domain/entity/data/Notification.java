@@ -25,6 +25,10 @@ public class Notification {
     @JsonProperty("createDate")
     private Long createDate;
 
+    @SerializedName(value = "updateDate")
+    @JsonProperty("updateDate")
+    private Long updateDate;
+
     @SerializedName(value = "category")
     @JsonProperty("category")
     private String category;
@@ -63,7 +67,7 @@ public class Notification {
 
     @SerializedName(value = "historicalContent")
     @JsonProperty("historicalContent")
-    private List<String> historicalContent;
+    private List<EventNotification> historicalContent;
 
     @SerializedName(value = "count")
     @JsonProperty("count")

@@ -16,6 +16,7 @@ import com.superapp.redsocial.notification.domain.utils.Status;
 import com.superapp.redsocial.notification.domain.utils.SubType;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.UUID;
 
 import static com.superapp.core.sqs.SQSUtil.sendMessageWithSQSName;
@@ -51,6 +52,7 @@ public class NotificationFriend {
 
         var notificationData = new Notification(notificacion.getId().toString(),
                 requestData.getDate(),
+                0l,
                 FRIEND_REQUEST.name(),
                 FRIEND_REQUEST.value(),
                 requestData.getType(),
@@ -60,7 +62,6 @@ public class NotificationFriend {
                         .build(),
                 EventNotification.builder()
                         .body(union.getNotificacion().getMensaje())
-                        .category(FRIEND_REQUEST.name())
                         .extractText(union.getNotificacion().getMensaje())
                         .build(),
                 SenderUser.builder()
@@ -72,10 +73,14 @@ public class NotificationFriend {
                         .builder()
                         .id(union.getId())
                         .name(union.getName())
+                        .sicu(union.getSicu())
                         .build(),
                 notificacion.getUsuarios(),
-                Arrays.asList(),
-                0);
+                Arrays.asList(EventNotification.builder()
+                        .body(union.getNotificacion().getMensaje())
+                        .extractText(union.getNotificacion().getMensaje())
+                        .build()),
+                1);
 
 
 

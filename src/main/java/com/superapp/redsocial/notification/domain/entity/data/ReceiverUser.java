@@ -27,4 +27,8 @@ public class ReceiverUser {
     @SerializedName(value = "name")
     private String name;
 
+    @JsonProperty("sicu")
+    @SerializedName(value = "sicu")
+    private String sicu;
+
 }
