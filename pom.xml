@@ -5,10 +5,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.superapp.redsocial</groupId>
-    <artifactId>superapp-ws-ms-redsocial-post-view</artifactId>
+    <artifactId>superapp-ws-ms-redsocial-notification-friendrequest-v2</artifactId>
     <version>1.0.0</version>
-    <name>superapp-ws-ms-redsocial-post-view</name>
-    <description>Web Service for retrieve all posts of an user in RedSocial</description>
+    <name>superapp-ws-ms-redsocial-notification-friendrequest-v2</name>
+    <description>Microservice that set notification friend request</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -19,6 +19,7 @@
         <apache.version>4.5.12</apache.version>
         <jackson.version>2.12.2</jackson.version>
     </properties>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -30,6 +31,7 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
     <dependencies>
         <!--        Start local dependencies -->
         <dependency>
@@ -49,9 +51,30 @@
             <version>${jackson.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.8.7</version>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-lambda-java-core</artifactId>
+            <version>1.2.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-lambda-java-events</artifactId>
+            <version>3.8.0</version>
+        </dependency>
+        <dependency>
             <groupId>com.superapp.redsocial</groupId>
             <artifactId>redsocial-core</artifactId>
             <version>0.1.2</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>superapp.core.aws</groupId>
+            <artifactId>dynamo</artifactId>
+            <version>0.0.1</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -61,9 +84,9 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>superapp.core.aws</groupId>
-            <artifactId>dynamo</artifactId>
-            <version>0.0.1</version>
+            <groupId>com.superapp.core</groupId>
+            <artifactId>superapp-core-sqs</artifactId>
+            <version>1.0.2</version>
             <scope>provided</scope>
         </dependency>
         <!--        End local dependencies -->
@@ -100,4 +123,5 @@
             </plugin>
         </plugins>
     </build>
+
 </project>

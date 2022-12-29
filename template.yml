@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: SAM Template For Deploy Java Lambda for Superapp RedSocial
+Description: SAM Template For Java Lambda Superapp RedSocial
 Parameters:
   Environment:
     Type: String
@@ -8,11 +8,9 @@ Parameters:
     Type: String
   Version:
     Type: String
-  RsNeptuneConfig:
-    Type: String
   SearchNeptuneConfig:
     Type: String
-  PagerPageSize:
+  RsNeptuneConfig:
     Type: String
 Mappings:
   Configuration:
@@ -45,7 +43,7 @@ Mappings:
       ReservedConcurrentExecutions: 1
       CodeDeployRole: DevOpsCodeDeploy
       CodeDeployType: CodeDeployDefault.LambdaAllAtOnce
-      MemorySize: 1024
+      MemorySize: 2048
       Timeout: 90
       LambdaSecurityGroupIds: #Sólo se modifica el valor si se requiere un security group diferente al genérico
         - sg-0c42e4e068e697d8a
@@ -56,17 +54,30 @@ Mappings:
         - subnet-0ffb48440f1bdd8cb
   Layers:
     dev:
-      RedSocial: "superapp-core-redsocial:15"
-      Neptune: "superapp-core-neptune:3"
+      RedSocial: "superapp-core-redsocial:2"
+      Neptune: "superapp-core-neptune:2"
       Dynamo: "superapp-core-dynamo:1"
+      Sqs: "superapp-core-sqs:1"
     qa:
-      RedSocial: "superapp-core-redsocial:15"
-      Neptune: "superapp-core-neptune:3"
+      RedSocial: "superapp-core-redsocial:2"
+      Neptune: "superapp-core-neptune:2"
       Dynamo: "superapp-core-dynamo:1"
+      Sqs: "superapp-core-sqs:1"
     prod:
-      RedSocial: "superapp-core-redsocial:15"
-      Neptune: "superapp-core-neptune:3"
+      RedSocial: "superapp-core-redsocial:2"
+      Neptune: "superapp-core-neptune:2"
       Dynamo: "superapp-core-dynamo:1"
+      Sqs: "superapp-core-sqs:1"
+  Variables:
+    dev:
+      SCToken: "com/upax/superapp/security/token/tokenauthentication"
+      PushNotificationSQS: "superapp-ws-ms-push-notification"
+    qa:
+      SCToken: "com/upax/superapp/security/token/tokenauthentication"
+      PushNotificationSQS: "superapp-ws-ms-push-notification"
+    prod:
+      SCToken: "com/upax/superapp/security/token/tokenauthentication"
+      PushNotificationSQS: "superapp-ws-ms-push-notification"
 Resources:
   LambdaRole:
     Type: AWS::IAM::Role
@@ -123,7 +134,7 @@ Resources:
     Properties:
       FunctionName: !Ref Name
       CodeUri: dist
-      Handler: com.superapp.redsocial.user.infraestructure.api.Handler::handleRequest
+      Handler: com.superapp.redsocial.notification.infraestructure.handler.Handler::handleRequest
       Runtime: java11
       MemorySize: !FindInMap [ Configuration, !Ref Environment, MemorySize ]
       Timeout: !FindInMap [ Configuration, !Ref Environment, Timeout ]
@@ -141,6 +152,9 @@ Resources:
         - !Sub
           - "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${Layer}"
           - { Layer: !FindInMap [ Layers, !Ref Environment, Dynamo ] }
+        - !Sub
+          - "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${Layer}"
+          - { Layer: !FindInMap [ Layers, !Ref Environment, Sqs ] }
       Environment:
         Variables:
           APP_NAME: !Ref Name
@@ -148,7 +162,10 @@ Resources:
           APP_VERSION: !Ref Version
           SearchNeptuneConfig: !Ref SearchNeptuneConfig
           RsNeptuneConfig: !Ref RsNeptuneConfig
-          PagerPageSize: !Ref PagerPageSize
+          SCToken: !FindInMap [ Variables, !Ref Environment, SCToken ]
+          PushNotificationSQS: !FindInMap [ Variables, !Ref Environment, PushNotificationSQS ]
+          IdInteraccion: "123e4567-e89b-12d3-a456-426655440000"
+          SQS_NOTIFICATION: superapp-ws-ms-redsocial-disperse-notification
       AutoPublishAlias: live
       Role: !Sub
         - "arn:aws:iam::${AWS::AccountId}:role/devops/${LambdaRole}"
